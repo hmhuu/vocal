@@ -10,7 +10,7 @@ import time
 # 1. 페이지 설정 및 스타일
 st.set_page_config(page_title="Vocal Analyzer Pro", layout="wide")
 st.markdown("""<style> .main { overflow: hidden; } div.block-container { padding-top: 2rem; } </style>""", unsafe_allow_html=True)
-st.title("🎤 Vocal Analyzer (2026 Syntax Updated)")
+st.title("🎤 Vocal Analyzer (Cleaned Version)")
 
 # 2. 사이드바 설정
 st.sidebar.header("⚙️ Settings")
@@ -20,12 +20,17 @@ data_points = st.sidebar.slider("Raw Data Points", 10, 200, 50)
 smooth_factor = st.sidebar.slider("Smooth Factor", 30, 400, 100)
 smoothing_alpha = st.sidebar.slider("Responsiveness", 0.1, 1.0, 0.4)
 
-if 'analyzing' not in st.session_state: st.session_state.analyzing = True
+# 세션 상태 초기화
+if 'analyzing' not in st.session_state: 
+    st.session_state.analyzing = True
 if 'last_df' not in st.session_state:
     st.session_state.last_df = pd.DataFrame({'Hz': np.linspace(0, target_hz, smooth_factor), 'Magnitude': 0})
-if 'noise_floor' not in st.session_state: st.session_state.noise_floor = np.zeros(data_points)
-if 'prev_y' not in st.session_state: st.session_state.prev_y = np.zeros(data_points)
+if 'noise_floor' not in st.session_state: 
+    st.session_state.noise_floor = np.zeros(data_points)
+if 'prev_y' not in st.session_state: 
+    st.session_state.prev_y = np.zeros(data_points)
 
+# 설정 변경 시 배열 크기 동기화
 if len(st.session_state.prev_y) != data_points:
     st.session_state.prev_y = np.zeros(data_points)
     st.session_state.noise_floor = np.zeros(data_points)
@@ -40,24 +45,25 @@ def note_to_hz(note):
         octave = int(note[-1])
         n = notes.index(name)
         return 440.0 * (2.0 ** ((n - 9 + (octave - 4) * 12) / 12.0))
-    except: return None
+    except: 
+        return None
 
 # 3. UI 컨트롤
 c1, c2, c3 = st.columns([1, 1, 2])
 with c1:
     btn_label = "⏹️ Stop" if st.session_state.analyzing else "🔴 Run"
-    if st.button(btn_label, width='stretch'): # 수정됨
+    if st.button(btn_label, width='stretch'):
         st.session_state.analyzing = not st.session_state.analyzing
         st.rerun()
 with c2:
-    if st.button("🧹 Zero Noise", width='stretch'): # 수정됨
+    if st.button("🧹 Zero Noise", width='stretch'):
         st.session_state.capture_noise = True
 with c3:
     note_input = st.text_input("Harmony Note", value="C4")
 
 chart_placeholder = st.empty()
 
-# 4. 차트 생성 함수 (스타일 및 문법 수정)
+# 4. 차트 생성 함수
 def get_optimized_chart(df, target_hz, y_limit, note_input):
     base = alt.Chart(df).mark_line(
         color='#1E90FF', strokeWidth=2, clip=True, interpolate='linear'
@@ -94,7 +100,8 @@ if st.session_state.analyzing:
             y_curr = np.zeros(data_points)
             for i in range(data_points):
                 mask = (indices == i + 1)
-                if np.any(mask): y_curr[i] = np.mean(fft_mag[mask])
+                if np.any(mask): 
+                    y_curr[i] = np.mean(fft_mag[mask])
 
             if st.session_state.get('capture_noise', False):
                 st.session_state.noise_floor = y_curr.copy()
@@ -110,7 +117,6 @@ if st.session_state.analyzing:
             st.session_state.last_df = pd.DataFrame({'Hz': x_smooth, 'Magnitude': y_final})
             chart = get_optimized_chart(st.session_state.last_df, target_hz, y_limit, note_input)
             
-            # [수정] width='stretch' 적용
             chart_placeholder.altair_chart(chart, width='stretch')
             time.sleep(0.001)
 
@@ -118,5 +124,5 @@ if st.session_state.analyzing:
             break
 else:
     chart = get_optimized_chart(st.session_state.last_df, target_hz, y_limit, note_input)
-    chart_placeholder.altair_chart(chart, width='stretch') # 수정됨
+    chart_placeholder.altair_chart(chart, width='stretch')
     st.info("⏸️ 분석 중지됨")
